@@ -9,6 +9,7 @@
 set -e
 cd "$(dirname "$0")/../.."
 ROOT="$PWD"
+TARGET=x86_64-pc-windows-gnullvm
 export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
 WINE="${WINE:-$HOME/Library/Caches/victory-macos/target/wine-cx/bin/wine}"
 [ -x "$WINE" ] || { echo "no Wine at $WINE: run tools/macos/build-crossover-wine.sh first" >&2; exit 1; }
@@ -17,13 +18,16 @@ WINE="${WINE:-$HOME/Library/Caches/victory-macos/target/wine-cx/bin/wine}"
     exit 1
 }
 if [ "${VICTORY_DIAGNOSTICS:-0}" = 1 ]; then
-    cargo build --quiet --release -p victory --features diagnostics --target x86_64-pc-windows-gnullvm
+    cargo build --quiet --release -p victory --features diagnostics --target "$TARGET"
 else
-    cargo build --quiet --release -p victory --target x86_64-pc-windows-gnullvm
+    cargo build --quiet --release -p victory --target "$TARGET"
 fi
+# Ask Cargo where it built the executable, including any configured target directory.
+metadata=$(cargo metadata --format-version 1 --no-deps)
+target_dir=$(printf '%s\n' "$metadata" | /usr/bin/plutil -extract target_directory raw -o - -)
 export WINEPREFIX="${WINEPREFIX:-$ROOT/target/wineprefix-play}"
 export WINEDEBUG="${WINEDEBUG:--all}"
 export WINEDLLOVERRIDES="mscoree,mshtml=;winedbg.exe=d;d3d12,d3d12core,dxgi=b${WINEDLLOVERRIDES:+;$WINEDLLOVERRIDES}"
 # Rosetta tells the game about AVX and AVX2, which it may check for.
 export ROSETTA_ADVERTISE_AVX=1
-exec "$WINE" "$ROOT/target/x86_64-pc-windows-gnullvm/release/victory.exe" "$@"
+exec "$WINE" "$target_dir/$TARGET/release/victory.exe" "$@"
