@@ -302,6 +302,8 @@ set -- help
 . "$0" > /dev/null
 CACHE="$case_dir/cache"
 WORK="$case_dir/work"
+TARGET="$CACHE/target"
+WINE_BIN="$TARGET/wine-cx/bin/wine"
 mkdir -p "$WORK/tools/macos"
 printf '#!/bin/sh\nexit %s\n' "$setup_status" > "$WORK/setup.sh"
 chmod +x "$WORK/setup.sh"
