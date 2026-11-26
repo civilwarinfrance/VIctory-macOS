@@ -49,10 +49,19 @@ x86() { arch -x86_64 /usr/bin/env PATH="$NATIVE_TOOLS:$BREW/opt/bison/bin:$BREW/
 
 mkdir -p "$WORK" "$OBJ"
 TAR="$WORK/crossover-sources-$VERSION.tar.gz"
+verify_source_tar() {
+  [[ $VERSION != 26.3.0 ]] ||
+    printf '%s  %s\n' ac99c8ca4b3848f3e81784135f023df266b61c2345726ea55a50b3e030dd6872 "$1" | shasum -a 256 -c --quiet
+}
 if [[ ! -d $WORK/sources/wine ]]; then
-  [[ -f $TAR ]] || curl -fL --retry 3 -o "$TAR" "https://media.codeweavers.com/pub/crossover/source/crossover-sources-$VERSION.tar.gz"
-  if [[ $VERSION == 26.3.0 ]]; then
-    echo "ac99c8ca4b3848f3e81784135f023df266b61c2345726ea55a50b3e030dd6872  $TAR" | shasum -a 256 -c --quiet || { echo "checksum mismatch for ${TAR:t}" >&2; exit 1; }
+  if [[ ! -f $TAR ]] || ! verify_source_tar "$TAR"; then
+    (
+      partial="$(mktemp "$TAR.part.XXXXXX")"
+      trap 'rm -f "$partial"' EXIT
+      curl -fL --retry 3 -o "$partial" "https://media.codeweavers.com/pub/crossover/source/crossover-sources-$VERSION.tar.gz"
+      verify_source_tar "$partial" || { echo "checksum mismatch for ${TAR:t}" >&2; exit 1; }
+      mv "$partial" "$TAR"
+    )
   fi
   tar -xzf "$TAR" -C "$WORK"
 fi
