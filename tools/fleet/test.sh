@@ -60,6 +60,19 @@ eq "unrelated disk image" "unknown" "$(gptk_version_of '4.0.dmg')"
 eq "unfinished toolkit download" "unknown" "$(gptk_version_of 'Game_Porting_Toolkit_4.0_beta_3.dmg.part')"
 eq "unsupported toolkit beta number" "unknown" "$(gptk_version_of 'Game_Porting_Toolkit_4.0_beta_10.dmg')"
 
+# The worker should select the same download as setup.sh, regardless of name order.
+downloads="$tmp/Toolkit Downloads"
+mkdir "$downloads"
+pick_gptk() {
+    bash -c 'downloads=$1; set -- help; . "$0" >/dev/null; gptk_dmg "$downloads"' "$FLEET_DIR/fleet.sh" "$downloads"
+}
+eq "no toolkit download" "" "$(pick_gptk)"
+touch -t 202601010101 "$downloads/Game_Porting_Toolkit_4.0_beta_3.dmg"
+touch -t 202601020101 "$downloads/Game_Porting_Toolkit_4.0.dmg"
+eq "most recently modified toolkit download" "$downloads/Game_Porting_Toolkit_4.0.dmg" "$(pick_gptk)"
+mkdir "$downloads/Game_Porting_Toolkit_5.0.dmg"
+eq "toolkit-looking directories are ignored" "$downloads/Game_Porting_Toolkit_4.0.dmg" "$(pick_gptk)"
+
 # --- commands
 eq "claim" claim "$(parse_command "/claim")"
 eq "claim with spaces" claim "$(parse_command "  /claim  ")"

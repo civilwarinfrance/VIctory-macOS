@@ -95,7 +95,17 @@ my_chip() { chip_family_of "$(brand)"; }
 legal_hash() { shasum -a 256 "$LEGAL" | cut -d ' ' -f 1; }
 accepted() { [ -f "$CACHE/accepted-legal" ] && [ "$(cut -d ' ' -f 1 "$CACHE/accepted-legal")" = "$(legal_hash)" ]; }
 GPTK_URL="https://developer.apple.com/download/all/?q=game%20porting%20toolkit"
-gptk_dmg() { find "$HOME/Downloads" -maxdepth 1 -name 'Game_Porting_Toolkit*.dmg' 2> /dev/null | sort | tail -n 1; }
+gptk_dmg() {
+    local candidate newest=""
+    # setup.sh chooses the newest download by modification time.
+    for candidate in "${1:-$HOME/Downloads}"/Game_Porting_Toolkit*.dmg; do
+        [ -f "$candidate" ] || continue
+        if [[ -z "$newest" || "$candidate" -nt "$newest" ]]; then
+            newest=$candidate
+        fi
+    done
+    if [ -n "$newest" ]; then printf '%s\n' "$newest"; fi
+}
 
 gptk_version() {
     gptk_version_of "$(gptk_dmg)"
