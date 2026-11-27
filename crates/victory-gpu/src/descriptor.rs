@@ -1445,6 +1445,44 @@ pub(crate) mod tests {
     /// The work [`WHILE_MAKING`] runs.
     pub(crate) type Work = Box<dyn FnOnce() + Send>;
 
+    // A test arms the next prepare on its own thread. Other tests may prepare
+    // views at the same time, but must not consume or replace its callback.
+    std::thread_local! {
+        static PREPARE_HOOK: std::cell::RefCell<Option<Work>> = const { std::cell::RefCell::new(None) };
+    }
+
+    pub(super) fn set_prepare_hook(work: Work) {
+        PREPARE_HOOK.replace(Some(work));
+    }
+
+    pub(super) fn run_prepare_hook() {
+        if let Some(work) = PREPARE_HOOK.take() {
+            work();
+        }
+    }
+
+    pub(super) fn prepare_hook_pending() -> bool {
+        PREPARE_HOOK.with_borrow(Option::is_some)
+    }
+
+    #[test]
+    fn prepare_hook_only_runs_on_its_own_test_thread() {
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicBool, Ordering};
+
+        let ran = Arc::new(AtomicBool::new(false));
+        let observed = Arc::clone(&ran);
+        set_prepare_hook(Box::new(move || observed.store(true, Ordering::Relaxed)));
+
+        std::thread::spawn(run_prepare_hook).join().unwrap();
+        assert!(!ran.load(Ordering::Relaxed));
+        assert!(prepare_hook_pending());
+
+        run_prepare_hook();
+        assert!(ran.load(Ordering::Relaxed));
+        assert!(!prepare_hook_pending());
+    }
+
     pub(crate) fn while_making(slots: &[u32]) {
         let mut hook = WHILE_MAKING.lock().unwrap_or_else(|e| e.into_inner());
         if hook.as_ref().is_some_and(|(slot, _)| slots.contains(slot))
