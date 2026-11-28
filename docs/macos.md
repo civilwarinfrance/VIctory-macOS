@@ -197,6 +197,8 @@ tools/macos/prewarm-cache.sh
 
 Set `WINE` to the absolute path of the CrossOver Wine binary if using a separate checkout. The script generates its own shaders and pack, interleaves full and selective prebuilds, and checks fresh-process GPU output against CPU expectations. It measures process memory and tests cache recovery in a dedicated Wine prefix under a unique executable name. It prints where to find the logs and backed-up synthetic caches.
 
+To reuse an existing Windows build, set `PREWARM_CLI` to its `victory.exe`, `PREWARM_FIXTURE` to its `victory_gpu-*.exe` test binary, or both. The script builds whichever binary was left unset.
+
 ## Open differences under D3DMetal
 
 The merge of VIctory's changes up to 70564ae on 25 November 2026 brought new shader tests, and three of them find real differences in D3DMetal 4.0 beta 3 on an M4. The tests skip only those checks under Wine, so the rest of each test still runs.
